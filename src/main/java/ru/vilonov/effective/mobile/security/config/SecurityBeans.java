@@ -26,4 +26,26 @@ public class SecurityBeans {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
     }
+
+    @Bean
+    public JwtAuthenticationConfigurer jwtAuthenticationConfigurer(
+            @Value("${jwt.access-token-key}") String accessTokenKey,
+            @Value("${jwt.refresh-token-key}") String refreshTokenKey,
+            JdbcTemplate jdbcTemplate
+    ) throws ParseException, JOSEException {
+        return new JwtAuthenticationConfigurer()
+                .accessTokenStringSerializer(new AccessTokenJwsStringSerializer(
+                        new MACSigner(OctetSequenceKey.parse(accessTokenKey))
+                ))
+                .refreshTokenStringSerializer(new RefreshTokenJweStringSerializer(
+                        new DirectEncrypter(OctetSequenceKey.parse(refreshTokenKey))
+                ))
+                .accessTokenStringDeserializer(new AccessTokenJwsStringDeserializer(
+                        new MACVerifier(OctetSequenceKey.parse(accessTokenKey))
+                ))
+                .refreshTokenStringDeserializer(new RefreshTokenJweStringDeserializer(
+                        new DirectDecrypter(OctetSequenceKey.parse(refreshTokenKey))
+                ))
+                .jdbcTemplate(jdbcTemplate);
+    }
 }
